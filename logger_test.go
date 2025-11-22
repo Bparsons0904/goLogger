@@ -570,7 +570,8 @@ func TestSignString_ReturnsCorrectSign(t *testing.T) {
 
 // Test helper to capture log output
 type testHandler struct {
-	logs *[]string
+	logs  *[]string
+	attrs []slog.Attr
 }
 
 func (h *testHandler) Enabled(_ context.Context, _ slog.Level) bool {
@@ -580,6 +581,11 @@ func (h *testHandler) Enabled(_ context.Context, _ slog.Level) bool {
 func (h *testHandler) Handle(_ context.Context, record slog.Record) error {
 	var parts []string
 	parts = append(parts, record.Message)
+
+	// Include stored attributes from WithAttrs calls
+	for _, attr := range h.attrs {
+		parts = append(parts, fmt.Sprintf("%s=%v", attr.Key, attr.Value))
+	}
 
 	record.Attrs(func(attr slog.Attr) bool {
 		parts = append(parts, fmt.Sprintf("%s=%v", attr.Key, attr.Value))
@@ -592,7 +598,14 @@ func (h *testHandler) Handle(_ context.Context, record slog.Record) error {
 }
 
 func (h *testHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return h
+	// Create a new handler with combined attributes
+	newAttrs := make([]slog.Attr, len(h.attrs), len(h.attrs)+len(attrs))
+	copy(newAttrs, h.attrs)
+	newAttrs = append(newAttrs, attrs...)
+	return &testHandler{
+		logs:  h.logs,
+		attrs: newAttrs,
+	}
 }
 
 func (h *testHandler) WithGroup(name string) slog.Handler {

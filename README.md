@@ -1,4 +1,8 @@
-# Logger Package
+# goLogger
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/Bparsons0904/goLogger.svg)](https://pkg.go.dev/github.com/Bparsons0904/goLogger)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Bparsons0904/goLogger)](https://goreportcard.com/report/github.com/Bparsons0904/goLogger)
 
 A flexible, structured logging package built on Go's `slog` with built-in support for trace IDs, request tracking, and performance monitoring.
 
@@ -16,7 +20,7 @@ A flexible, structured logging package built on Go's `slog` with built-in suppor
 ## Installation
 
 ```bash
-go get your-module/pkg/logger
+go get github.com/Bparsons0904/goLogger
 ```
 
 ## Quick Start
@@ -26,7 +30,7 @@ go get your-module/pkg/logger
 ```go
 package main
 
-import "your-module/pkg/logger"
+import "github.com/Bparsons0904/goLogger"
 
 func main() {
     log := logger.New("my-service")
@@ -44,7 +48,7 @@ func main() {
 import (
     "log/slog"
     "os"
-    "your-module/pkg/logger"
+    "github.com/Bparsons0904/goLogger"
 )
 
 config := logger.Config{
@@ -108,7 +112,7 @@ package middleware
 import (
     "github.com/gofiber/fiber/v2"
     "github.com/google/uuid"
-    "your-module/pkg/logger"
+    "github.com/Bparsons0904/goLogger"
 )
 
 func TraceID() fiber.Handler {
@@ -150,7 +154,7 @@ import (
     "context"
     "net/http"
     "github.com/google/uuid"
-    "your-module/pkg/logger"
+    "github.com/Bparsons0904/goLogger"
 )
 
 func TraceIDMiddleware(next http.Handler) http.Handler {
@@ -514,20 +518,6 @@ func TestMyFunction(t *testing.T) {
 }
 ```
 
-## Migration from internal/logger
-
-If you're migrating from `internal/logger` to `pkg/logger`, the API is 100% backward compatible. Simply update your imports:
-
-```go
-// Old
-import "your-module/internal/logger"
-
-// New
-import "your-module/pkg/logger"
-```
-
-The `New()` function maintains backward compatibility with environment variable configuration.
-
 ## License
 
-This package is part of your project and follows the same license.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
