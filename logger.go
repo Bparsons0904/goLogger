@@ -97,7 +97,8 @@ type Logger interface {
 
 // SlogLogger implements the Logger interface using slog
 type SlogLogger struct {
-	logger *slog.Logger
+	logger  *slog.Logger
+	traceID string
 }
 
 // New creates a new logger with the provided name using default configuration
@@ -195,21 +196,33 @@ func TraceIDFromContextName(ctx context.Context, key string) string {
 // Arguments should be provided as alternating key-value pairs.
 func (l *SlogLogger) With(args ...any) Logger {
 	return &SlogLogger{
-		logger: l.logger.With(args...),
+		logger:  l.logger.With(args...),
+		traceID: l.traceID,
 	}
+}
+
+// formatError formats an error message with trace ID if available
+func (l *SlogLogger) formatError(msg string) error {
+	if l.traceID != "" {
+		return fmt.Errorf("[%s] %s", l.traceID, msg)
+	}
+	return fmt.Errorf("%s", msg)
 }
 
 // Error logs an error message with optional key-value pairs and returns an error
 // created from the message.
 func (l *SlogLogger) Error(msg string, args ...any) error {
 	l.logger.Error(msg, args...)
-	return fmt.Errorf("%s", msg)
+	return l.formatError(msg)
 }
 
 // ErrorWithType logs an error message and returns an error that wraps the provided
 // error type with the message.
 func (l *SlogLogger) ErrorWithType(errType error, msg string, args ...any) error {
 	l.logger.Error(msg, args...)
+	if l.traceID != "" {
+		return fmt.Errorf("[%s] %w: %s", l.traceID, errType, msg)
+	}
 	return fmt.Errorf("%w: %s", errType, msg)
 }
 
@@ -246,6 +259,9 @@ func (l *SlogLogger) Timer(msg string) func() {
 func (l *SlogLogger) Errorf(msg string, errMessage string) error {
 	err := fmt.Errorf("error: %s", errMessage)
 	l.logger.Error(msg, "error", err)
+	if l.traceID != "" {
+		return fmt.Errorf("[%s] error: %s", l.traceID, errMessage)
+	}
 	return err
 }
 
@@ -257,10 +273,13 @@ func (l *SlogLogger) Er(msg string, err error, args ...any) {
 }
 
 // Err logs an error message with the provided error and optional key-value pairs,
-// then returns the original error.
+// then returns the original error wrapped with trace ID if available.
 func (l *SlogLogger) Err(msg string, err error, args ...any) error {
 	logArgs := append([]any{"error", err}, args...)
 	l.logger.Error(msg, logArgs...)
+	if l.traceID != "" {
+		return fmt.Errorf("[%s] %s: %w", l.traceID, msg, err)
+	}
 	return err
 }
 
@@ -272,7 +291,7 @@ func (l *SlogLogger) ErMsg(msg string) {
 // ErrMsg logs an error message and returns an error created from the message.
 func (l *SlogLogger) ErrMsg(msg string) error {
 	l.logger.Error(msg)
-	return fmt.Errorf("%s", msg)
+	return l.formatError(msg)
 }
 
 // Step logs an informational message, useful for marking steps in a process.
@@ -297,7 +316,10 @@ func (l *SlogLogger) Info(msg string, args ...any) {
 
 // WithTraceID adds a trace ID to all subsequent log calls
 func (l *SlogLogger) WithTraceID(traceID string) Logger {
-	return l.With("traceID", traceID)
+	return &SlogLogger{
+		logger:  l.logger.With("traceID", traceID),
+		traceID: traceID,
+	}
 }
 
 // TraceFromContext extracts trace ID from context using the default key and adds it to the logger
