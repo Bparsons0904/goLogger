@@ -1,3 +1,26 @@
+// Package logger provides a flexible, structured logging package built on Go's slog
+// with built-in support for trace IDs, request tracking, and performance monitoring.
+//
+// The package offers a fluent API for adding context to logs through method chaining,
+// automatic trace ID propagation from context, and built-in performance metrics
+// including memory usage and goroutine tracking.
+//
+// Basic usage:
+//
+//	log := logger.New("my-service")
+//	log.Info("Application started")
+//	log.With("userID", 123).Debug("User action", "action", "login")
+//
+// With trace ID from context:
+//
+//	ctx := logger.ContextWithTraceID(ctx, "req-123")
+//	log := logger.New("api").TraceFromContext(ctx)
+//	log.Info("Request received")
+//
+// With performance metrics:
+//
+//	done := log.TimerWithMetrics("database query")
+//	defer done()
 package logger
 
 import (
@@ -168,30 +191,43 @@ func TraceIDFromContextName(ctx context.Context, key string) string {
 	return ""
 }
 
+// With returns a new Logger with the given key-value pairs added to its context.
+// Arguments should be provided as alternating key-value pairs.
 func (l *SlogLogger) With(args ...any) Logger {
 	return &SlogLogger{
 		logger: l.logger.With(args...),
 	}
 }
 
+// Error logs an error message with optional key-value pairs and returns an error
+// created from the message.
 func (l *SlogLogger) Error(msg string, args ...any) error {
 	l.logger.Error(msg, args...)
 	return fmt.Errorf("%s", msg)
 }
 
+// ErrorWithType logs an error message and returns an error that wraps the provided
+// error type with the message.
 func (l *SlogLogger) ErrorWithType(errType error, msg string, args ...any) error {
 	l.logger.Error(msg, args...)
 	return fmt.Errorf("%w: %s", errType, msg)
 }
 
+// File returns a new Logger with the file name added to its context.
 func (l *SlogLogger) File(name string) Logger {
 	return l.With("file", name)
 }
 
+// Function returns a new Logger with the function name added to its context.
 func (l *SlogLogger) Function(name string) Logger {
 	return l.With("function", name)
 }
 
+// Timer starts a timer and returns a function that, when called, logs the elapsed
+// duration. Use with defer for timing operations:
+//
+//	done := log.Timer("database query")
+//	defer done()
 func (l *SlogLogger) Timer(msg string) func() {
 	start := time.Now()
 	l.logger.Debug("Starting", "operation", msg)
@@ -206,44 +242,55 @@ func (l *SlogLogger) Timer(msg string) func() {
 	}
 }
 
+// Errorf logs an error message with a formatted error string and returns the error.
 func (l *SlogLogger) Errorf(msg string, errMessage string) error {
 	err := fmt.Errorf("error: %s", errMessage)
 	l.logger.Error(msg, "error", err)
 	return err
 }
 
+// Er logs an error message with the provided error and optional key-value pairs.
+// Unlike Err, it does not return the error.
 func (l *SlogLogger) Er(msg string, err error, args ...any) {
 	logArgs := append([]any{"error", err}, args...)
 	l.logger.Error(msg, logArgs...)
 }
 
+// Err logs an error message with the provided error and optional key-value pairs,
+// then returns the original error.
 func (l *SlogLogger) Err(msg string, err error, args ...any) error {
 	logArgs := append([]any{"error", err}, args...)
 	l.logger.Error(msg, logArgs...)
 	return err
 }
 
+// ErMsg logs an error message without returning an error.
 func (l *SlogLogger) ErMsg(msg string) {
 	l.logger.Error(msg)
 }
 
+// ErrMsg logs an error message and returns an error created from the message.
 func (l *SlogLogger) ErrMsg(msg string) error {
 	l.logger.Error(msg)
 	return fmt.Errorf("%s", msg)
 }
 
+// Step logs an informational message, useful for marking steps in a process.
 func (l *SlogLogger) Step(msg string) {
 	l.logger.Info(msg)
 }
 
+// Debug logs a debug-level message with optional key-value pairs.
 func (l *SlogLogger) Debug(msg string, args ...any) {
 	l.logger.Debug(msg, args...)
 }
 
+// Warn logs a warning-level message with optional key-value pairs.
 func (l *SlogLogger) Warn(msg string, args ...any) {
 	l.logger.Warn(msg, args...)
 }
 
+// Info logs an info-level message with optional key-value pairs.
 func (l *SlogLogger) Info(msg string, args ...any) {
 	l.logger.Info(msg, args...)
 }
